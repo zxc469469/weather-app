@@ -117,12 +117,15 @@ const WeatherApp = () => {
 
   useEffect(()=>{
     console.log('execute function in useEffect');
-    fetchCurrentWeather();
-    fetchWeatherForecast();
+    const fetchData = async () =>{
+      const data = await Promise.all([fetchCurrentWeather(),fetchWeatherForecast()])
+      console.log("data",data);
+    }
+    fetchData();
   },[])
 
-  const fetchWeatherForecast =()=>{
-    fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
+  const fetchWeatherForecast = ()=>{
+    return fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
     .then((response) => response.json())
     .then((data) => {
       const locationData = data.records.location[0];
@@ -131,25 +134,25 @@ const WeatherApp = () => {
           if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
             neededElements[item.elementName] = item.time[0].parameter;
           }
+          
           return neededElements;
         },
         {}
       );
-      setWeatherElement({
+      return{
         description: weatherElements.Wx.parameterName,
         weatherCode: weatherElements.Wx.parameterValue,
         rainPossibility: weatherElements.PoP.parameterName,
         comfortability: weatherElements.CI.parameterName,
-      });
+      };
     });
   }
   const fetchCurrentWeather = () =>{
-    fetch(
+    return fetch(
       'https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北'
     )
       .then((response) => response.json())
       .then((data) => {
-        console.log('data', data);
 
         const locationData = data.records.location[0];
 
@@ -162,18 +165,17 @@ const WeatherApp = () => {
         },
         {})
 
-        setWeatherElement({
+        return{
           observationTime: locationData.time.obsTime,
           locationName: locationData.locationName,
-          description: '多雲時晴',
           temperature: weatherElements.TEMP,
           windSpeed: weatherElements.WDSD,
           humid: weatherElements.HUMD,
-        });
+        };
       
       });
-      
   }
+
   return (
     <Container>
       <WeatherCard>
