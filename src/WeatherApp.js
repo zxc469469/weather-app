@@ -106,7 +106,7 @@ const Redo = styled.div`
 
 const WeatherApp = () => {
   console.log("--invoke--")
-  const [currentWeather, setCurrentWeather] = useState({
+  const [weatherElement, setWeatherElement] = useState({
     observationTime: '2019-10-02 22:10:00',
     locationName: '臺北市',
     description: '多雲時晴',
@@ -118,7 +118,31 @@ const WeatherApp = () => {
   useEffect(()=>{
     console.log('execute function in useEffect');
     fetchCurrentWeather();
+    fetchWeatherForecast();
   },[])
+
+  const fetchWeatherForecast =()=>{
+    fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
+    .then((response) => response.json())
+    .then((data) => {
+      const locationData = data.records.location[0];
+      const weatherElements = locationData.weatherElement.reduce(
+        (neededElements, item) => {
+          if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
+            neededElements[item.elementName] = item.time[0].parameter;
+          }
+          return neededElements;
+        },
+        {}
+      );
+      setWeatherElement({
+        description: weatherElements.Wx.parameterName,
+        weatherCode: weatherElements.Wx.parameterValue,
+        rainPossibility: weatherElements.PoP.parameterName,
+        comfortability: weatherElements.CI.parameterName,
+      });
+    });
+  }
   const fetchCurrentWeather = () =>{
     fetch(
       'https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北'
@@ -138,7 +162,7 @@ const WeatherApp = () => {
         },
         {})
 
-        setCurrentWeather({
+        setWeatherElement({
           observationTime: locationData.time.obsTime,
           locationName: locationData.locationName,
           description: '多雲時晴',
@@ -153,31 +177,31 @@ const WeatherApp = () => {
   return (
     <Container>
       <WeatherCard>
-        <Location>{currentWeather.locationName}</Location>
+        <Location>{weatherElement.locationName}</Location>
         <Description>
 
           {console.log("render")}
-          {currentWeather.description}</Description>
+          {weatherElement.description}</Description>
         <CurrentWeather>
           <Temperature>
             
-            {Math.round(currentWeather.temperature)} <Celsius>°C</Celsius>
+            {Math.round(weatherElement.temperature)} <Celsius>°C</Celsius>
           </Temperature>
           <Cloudy />
         </CurrentWeather>
         <AirFlow>
           <AirFlowIcon />
-          {currentWeather.windSpeed} m/h
+          {weatherElement.windSpeed} m/h
         </AirFlow>
         <Rain>
           <RainIcon />
-          {currentWeather.humid}
+          {weatherElement.humid}
         </Rain>
         <Redo  onClick={fetchCurrentWeather}>
         {new Intl.DateTimeFormat('zh-TW', {
             hour: 'numeric',
             minute: 'numeric',
-          }).format(new Date(currentWeather.observationTime))}
+          }).format(new Date(weatherElement.observationTime))}
           <RedoIcon/>
           </Redo >
       </WeatherCard>
