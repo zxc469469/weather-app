@@ -1,9 +1,9 @@
 import React ,{useState,useEffect,useCallback}from 'react';
 import styled from '@emotion/styled';
-import { ReactComponent as CloudyIcon } from './images/day-cloudy.svg';
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg';
 import { ReactComponent as RainIcon } from './images/rain.svg';
 import { ReactComponent as RedoIcon } from './images/refresh.svg';
+import WeatherIcon from './WeatherIcon'
 
 const Container = styled.div`
   background-color: #ededed;
@@ -53,9 +53,7 @@ const Celsius = styled.div`
   font-size: 42px;
 `;
 
-const Cloudy = styled(CloudyIcon)`
-  flex-basis: 30%;
-`;
+
 
 const AirFlow = styled.div`
   display: flex;
@@ -132,8 +130,6 @@ const WeatherApp = () => {
 
   useEffect(()=>{
     console.log('execute function in useEffect');
-    
-
     fetchData();
   },[fetchData])
 
@@ -202,7 +198,10 @@ const WeatherApp = () => {
             
             {Math.round(weatherElement.temperature)} <Celsius>°C</Celsius>
           </Temperature>
-          <Cloudy />
+          <WeatherIcon 
+           currentWeatherCode ={weatherElement.weatherCode}
+           moment ="night"
+          />
         </CurrentWeather>
         <AirFlow>
           <AirFlowIcon />
