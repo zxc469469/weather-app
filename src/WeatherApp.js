@@ -1,4 +1,4 @@
-import React ,{useState,useEffect}from 'react';
+import React ,{useState,useEffect,useCallback}from 'react';
 import styled from '@emotion/styled';
 import { ReactComponent as CloudyIcon } from './images/day-cloudy.svg';
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg';
@@ -114,17 +114,31 @@ const WeatherApp = () => {
     windSpeed: 0.3,
     humid: 0.88,
   });
+  const fetchData = useCallback(() => {
+    const fetchingData = async () => {
+      const [currentWeather, weatherForecast] = await Promise.all([
+        fetchCurrentWeather(),
+        fetchWeatherForecast(),
+      ]);
+
+      setWeatherElement({
+        ...currentWeather,
+        ...weatherForecast,
+      });
+    };
+
+    fetchingData();
+  }, []);
 
   useEffect(()=>{
     console.log('execute function in useEffect');
-    const fetchData = async () =>{
-      const data = await Promise.all([fetchCurrentWeather(),fetchWeatherForecast()])
-      console.log("data",data);
-    }
+    
+
     fetchData();
-  },[])
+  },[fetchData])
 
   const fetchWeatherForecast = ()=>{
+    //回傳promise
     return fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
     .then((response) => response.json())
     .then((data) => {
@@ -134,7 +148,6 @@ const WeatherApp = () => {
           if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
             neededElements[item.elementName] = item.time[0].parameter;
           }
-          
           return neededElements;
         },
         {}
@@ -199,7 +212,11 @@ const WeatherApp = () => {
           <RainIcon />
           {weatherElement.humid}
         </Rain>
-        <Redo  onClick={fetchCurrentWeather}>
+        <Redo  onClick={()=>{
+            fetchCurrentWeather();
+            fetchWeatherForecast();
+          } 
+          }>
         {new Intl.DateTimeFormat('zh-TW', {
             hour: 'numeric',
             minute: 'numeric',
