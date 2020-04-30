@@ -1,12 +1,34 @@
-import React ,{useState,useEffect,useCallback}from 'react';
+import React ,{useState,useEffect,useCallback,useMemo }from 'react';
 import styled from '@emotion/styled';
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg';
 import { ReactComponent as RainIcon } from './images/rain.svg';
 import { ReactComponent as RedoIcon } from './images/refresh.svg';
+import { ReactComponent as LoadingIcon } from './images/loading.svg';
 import WeatherIcon from './WeatherIcon'
+import sunriseAndSunsetData from './sunrise-sunset.json';
+
+const theme = {
+  light: {
+    backgroundColor: '#ededed',
+    foregroundColor: '#f9f9f9',
+    boxShadow: '0 1px 3px 0 #999999',
+    titleColor: '#212121',
+    temperatureColor: '#757575',
+    textColor: '#828282',
+  },
+  dark: {
+    backgroundColor: '#1F2022',
+    foregroundColor: '#121416',
+    boxShadow:
+      '0 1px 4px 0 rgba(12, 12, 13, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.15)',
+    titleColor: '#f9f9fa',
+    temperatureColor: '#dddddd',
+    textColor: '#cccccc',
+  },
+};
 
 const Container = styled.div`
-  background-color: #ededed;
+  background-color: ${({ theme }) => theme.backgroundColor};
   height: 100%;
   display: flex;
   align-items: center;
@@ -101,6 +123,92 @@ const Redo = styled.div`
 `;
 
 
+const getMoment = (locationName) => {
+  const location = sunriseAndSunsetData.find(
+    (data) => data.locationName === locationName
+  );
+
+  if (!location) return null;
+
+  const now = new Date();
+
+  const nowDate = Intl.DateTimeFormat('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(now)
+    .replace(/\//g, '-');
+
+  const locationDate =
+    location.time && location.time.find((time) => time.dataTime === nowDate);
+
+  const sunriseTimestamp = new Date(
+    `${locationDate.dataTime} ${locationDate.sunrise}`
+  ).getTime();
+  const sunsetTimestamp = new Date(
+    `${locationDate.dataTime} ${locationDate.sunset}`
+  ).getTime();
+  const nowTimeStamp = now.getTime();
+
+  return sunriseTimestamp <= nowTimeStamp && nowTimeStamp <= sunsetTimestamp
+    ? 'day'
+    : 'night';
+};
+
+const fetchWeatherForecast = ()=>{
+  //回傳promise
+  return fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
+  .then((response) => response.json())
+  .then((data) => {
+    const locationData = data.records.location[0];
+    const weatherElements = locationData.weatherElement.reduce(
+      (neededElements, item) => {
+        if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
+          neededElements[item.elementName] = item.time[0].parameter;
+        }
+        return neededElements;
+      },
+      {}
+    );
+    return{
+      description: weatherElements.Wx.parameterName,
+      weatherCode: weatherElements.Wx.parameterValue,
+      rainPossibility: weatherElements.PoP.parameterName,
+      comfortability: weatherElements.CI.parameterName,
+    };
+  });
+}
+
+const fetchCurrentWeather = () =>{
+  return fetch(
+    'https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北'
+  )
+    .then((response) => response.json())
+    .then((data) => {
+
+      const locationData = data.records.location[0];
+      console.log(locationData)
+
+      const weatherElements = locationData.weatherElement.reduce(
+      (neededElements, item) => {
+        if (['WDSD', 'TEMP', 'HUMD'].includes(item.elementName)) {
+          neededElements[item.elementName] = item.elementValue;
+        }
+        return neededElements;
+      },
+      {})
+      return{
+        observationTime: locationData.time.obsTime,
+        locationName: locationData.locationName,
+        temperature: weatherElements.TEMP,
+        windSpeed: weatherElements.WDSD,
+        humid: weatherElements.HUMD,
+      };
+    
+    });
+}
+
 
 const WeatherApp = () => {
   console.log("--invoke--")
@@ -108,10 +216,25 @@ const WeatherApp = () => {
     observationTime: '2019-10-02 22:10:00',
     locationName: '臺北市',
     description: '多雲時晴',
-    temperature: 27.5,
-    windSpeed: 0.3,
-    humid: 0.88,
+    temperature: 0,
+    windSpeed: 0,
+    humid: 0,
+    isLoading:true
   });
+
+  const {
+    observationTime,
+    locationName,
+    temperature,
+    windSpeed,
+    description,
+    weatherCode,
+    rainPossibility,
+    comfortability,
+    isLoading,
+    humid,
+  } = weatherElement;
+
   const fetchData = useCallback(() => {
     const fetchingData = async () => {
       const [currentWeather, weatherForecast] = await Promise.all([
@@ -122,9 +245,11 @@ const WeatherApp = () => {
       setWeatherElement({
         ...currentWeather,
         ...weatherForecast,
+        isLoading:false
       });
     };
-
+    
+    setWeatherElement((prevState)=>({ ...prevState,isLoading:true}))
     fetchingData();
   }, []);
 
@@ -133,94 +258,47 @@ const WeatherApp = () => {
     fetchData();
   },[fetchData])
 
-  const fetchWeatherForecast = ()=>{
-    //回傳promise
-    return fetch('https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北市')
-    .then((response) => response.json())
-    .then((data) => {
-      const locationData = data.records.location[0];
-      const weatherElements = locationData.weatherElement.reduce(
-        (neededElements, item) => {
-          if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
-            neededElements[item.elementName] = item.time[0].parameter;
-          }
-          return neededElements;
-        },
-        {}
-      );
-      return{
-        description: weatherElements.Wx.parameterName,
-        weatherCode: weatherElements.Wx.parameterValue,
-        rainPossibility: weatherElements.PoP.parameterName,
-        comfortability: weatherElements.CI.parameterName,
-      };
-    });
-  }
-  const fetchCurrentWeather = () =>{
-    return fetch(
-      'https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=CWB-4F63EAE5-2770-418A-845C-095E90FC1737&locationName=臺北'
-    )
-      .then((response) => response.json())
-      .then((data) => {
+  const moment = useMemo(() => getMoment(locationName), [
+    locationName,
+  ]);
 
-        const locationData = data.records.location[0];
-
-        const weatherElements = locationData.weatherElement.reduce(
-        (neededElements, item) => {
-          if (['WDSD', 'TEMP', 'HUMD'].includes(item.elementName)) {
-            neededElements[item.elementName] = item.elementValue;
-          }
-          return neededElements;
-        },
-        {})
-
-        return{
-          observationTime: locationData.time.obsTime,
-          locationName: locationData.locationName,
-          temperature: weatherElements.TEMP,
-          windSpeed: weatherElements.WDSD,
-          humid: weatherElements.HUMD,
-        };
-      
-      });
-  }
 
   return (
-    <Container>
+    <Container theme={theme.dark}>
       <WeatherCard>
-        <Location>{weatherElement.locationName}</Location>
+        <Location>{locationName}</Location>
         <Description>
 
           {console.log("render")}
-          {weatherElement.description}</Description>
+          {description}</Description>
         <CurrentWeather>
           <Temperature>
             
-            {Math.round(weatherElement.temperature)} <Celsius>°C</Celsius>
+            {Math.round(temperature)} <Celsius>°C</Celsius>
           </Temperature>
           <WeatherIcon 
-           currentWeatherCode ={weatherElement.weatherCode}
-           moment ="night"
+           currentWeatherCode ={weatherCode}
+           moment={ moment || 'day'}
           />
         </CurrentWeather>
         <AirFlow>
           <AirFlowIcon />
-          {weatherElement.windSpeed} m/h
+          {windSpeed} m/h
         </AirFlow>
         <Rain>
+          {console.log(humid)}
           <RainIcon />
-          {weatherElement.humid}
+          {humid}
         </Rain>
         <Redo  onClick={()=>{
-            fetchCurrentWeather();
-            fetchWeatherForecast();
+           fetchData()
           } 
           }>
         {new Intl.DateTimeFormat('zh-TW', {
             hour: 'numeric',
             minute: 'numeric',
-          }).format(new Date(weatherElement.observationTime))}
-          <RedoIcon/>
+          }).format(new Date(observationTime))}
+          {isLoading ? <LoadingIcon /> : <RedoIcon />}
           </Redo >
       </WeatherCard>
     </Container>

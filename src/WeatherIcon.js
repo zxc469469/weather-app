@@ -69,6 +69,8 @@ const weatherTypes = {
     ''
   );
 
+
+
 const WeatherIcon = ({ currentWeatherCode, moment}) => {
     const [currentWeatherIcon, setCurrentWeatherIcon] = useState('isClear');
     const theWeatherIcon = useMemo(() => weatherCode2Type(currentWeatherCode), [currentWeatherCode, ]);
