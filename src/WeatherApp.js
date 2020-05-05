@@ -5,6 +5,7 @@ import WeatherCard from './WeatherCard';
 import useWeatherApi from './useWeatherApi';
 import sunriseAndSunsetData from './sunrise-sunset.json';
 import WeatherAppSetting from './WeatherAppSetting';
+import { findLocation } from './utils';
 
 const theme = {
   light: {
@@ -70,13 +71,14 @@ const getMoment = (locationName) => {
 
 const WeatherApp = () => {
   console.log("--invoke--")
+  const [currentCity, setCurrentCity] = useState('臺北市');
+  const currentLocation = findLocation(currentCity) || {};
   const [weatherElement, fetchData] = useWeatherApi();
   const [currentPage, setCurrentPage] = useState('WeatherCard');
   const [currentTheme, setCurrentTheme] = useState('light');
-  const { locationName } = weatherElement;
 
-  const moment = useMemo(() => getMoment(locationName), [
-    locationName,
+  const moment = useMemo(() => getMoment(currentLocation.sunriseCityName), [
+    currentLocation.sunriseCityName,
   ]);
   
   useEffect(() => {
@@ -89,6 +91,7 @@ const WeatherApp = () => {
     <Container >
     {currentPage === 'WeatherCard' && (
           <WeatherCard
+          cityName={currentLocation.cityName}
             weatherElement={weatherElement}
             moment={moment}
             fetchData={fetchData}
@@ -97,7 +100,9 @@ const WeatherApp = () => {
         )}
 
     {currentPage === 'WeatherSetting' && (<WeatherAppSetting 
-    setCurrentPage={setCurrentPage} />)}
+    cityName={currentLocation.cityName}
+    setCurrentCity={setCurrentCity}
+    setCurrentPage={setCurrentPage}/>)}
     </Container>
     </ThemeProvider>
   );
