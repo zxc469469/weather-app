@@ -1,3 +1,9 @@
+參考自 iT 邦幫忙鐵人賽 - 「從 Hooks 開始，讓你的網頁 React 起來」
+
+https://ithelp.ithome.com.tw/users/20103315/ironman/2668
+
+---
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
@@ -66,3 +72,4 @@ This section has moved here: https://facebook.github.io/create-react-app/docs/de
 ### `yarn build` fails to minify
 
 This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+
